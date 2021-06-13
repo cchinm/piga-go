@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>django-websocket</title>
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript">
+    function guid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0,
+            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+    
+    </script>
+    <script type="text/javascript">//<![CDATA[
+    $(function () {
+        $('#connect_websocket').click(function () {
+            if (window.s) {
+                window.s.close()
+            }
+            /*创建socket连接*/
+            if ($('#uuid').val() === "" || $('#uuid').val() === undefined) {
+                var uuid = guid()
+            } else {
+                var uuid = $('#uuid').val()
+            }
+
+            ws = "/ws/server?auto=false&group="+window.location.host + "&uuid="+ uuid;
+            var socket = new WebSocket("ws://" + window.location.host + ws);
+            socket.onopen = function () {
+                console.log('WebSocket open');//成功连接上Websocket
+            };
+            socket.onmessage = function (e) {
+                console.log('message: ' + e.data);//打印出服务端返回过来的数据
+                $('#messagecontainer').prepend('<p>' + e.data + '</p>');
+                socket.send(e.data)
+            };
+            // Call onopen directly if socket is already open
+            if (socket.readyState == WebSocket.OPEN) socket.onopen();
+            window.s = socket;
+        });
+        $('#send_message').click(function () {
+            //如果未连接到websocket
+            if (!window.s) {
+                alert("websocket未连接.");
+            } else {
+                window.s.send($('#message').val());//通过websocket发送数据
+            }
+        });
+        $('#close_websocket').click(function () {
+            if (window.s) {
+                window.s.close();//关闭websocket
+                console.log('websocket已关闭');
+            }
+        });
+
+    });
+    //]]></script>
+
+</head>
+<body>
+    <h1>{{ .Uname }}</h1>
+<br>
+<input type="text" id="group" value="group1"/>
+<input type="text" id="uuid" value="1111-111-1111-111"/>
+<br>
+<input type="text" id="message" value="Hello, World!"/>
+<button type="button" id="connect_websocket">连接 websocket</button>
+<button type="button" id="send_message">发送 message</button>
+<button type="button" id="close_websocket">关闭 websocket</button>
+<h1>Received Messages</h1>
+<div id="messagecontainer">
+
+</div>
+</body>
+</html>
