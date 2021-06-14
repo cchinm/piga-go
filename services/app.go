@@ -5,6 +5,8 @@ import (
 	"piga-go/models"
 	"sync"
 	"time"
+
+	"github.com/astaxie/beego"
 )
 
 var mux sync.RWMutex
@@ -38,7 +40,6 @@ func AppExecuteRemote(m *models.ExecuteEvent) models.ReturnTpl {
 			}
 		}()
 		ret := make(chan string)
-		fmt.Println("uuid", m.Uuid)
 		broadEvent := models.BroadCastEvent{
 			RequestEvent: m,
 			WsConn:       ws,
@@ -50,6 +51,7 @@ func AppExecuteRemote(m *models.ExecuteEvent) models.ReturnTpl {
 		case <-time.After(15 * time.Second):
 			return models.Error("事件初始化超时", m)
 		}
+		beego.Debug("等候输出结果......")
 		select {
 
 		case s := <-ret:
@@ -65,4 +67,5 @@ func AppExecuteRemote(m *models.ExecuteEvent) models.ReturnTpl {
 			return models.Error("超时退出调用", m)
 		}
 	}
+
 }

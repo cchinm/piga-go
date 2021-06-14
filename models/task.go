@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,30 +24,25 @@ type Task struct {
 func (t *Task) Run(ws *websocket.Conn, body []byte) {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println("recover ", err)
+			beego.Error(fmt.Sprintf("when execute %s ws-services have happend some err %#v", t.Uuid, err))
+			AutoLeave(t.Uuid, "")
 			// t.Response <- fmt.Sprintf("读取消息过程中发送错误 原因 %#v", err)
-			select {
-			case t.Response <- JsonFn(Error, "error", fmt.Sprintf("%#v", err)):
-				fmt.Println("recovery", err)
-			case <-time.After(3 * time.Second):
-				fmt.Println("recovery fail", err)
-			}
 		}
 	}()
 
+	// time.Sleep(time.Second * 10)
 	if err := ws.WriteMessage(websocket.TextMessage, body); err != nil {
-		switch err {
-		case websocket.ErrCloseSent:
-			AutoLeave(t.Uuid, "")
-		default:
-			AutoLeave(t.Uuid, "")
-		}
+		AutoLeave(t.Uuid, "")
 		t.Response <- JsonFn(Error, "error", fmt.Sprintf("任务执行错误 原因: %#v", err))
 		return
 	}
 
 	_, p, err := ws.ReadMessage()
 	if err != nil {
+		if _, ok := err.(*websocket.CloseError); ok {
+			AutoLeave(t.Uuid, "")
+			ws.Close()
+		}
 		t.Response <- JsonFn(Error, "error", fmt.Sprintf("读取消息过程中发送错误 原因 %#v", err))
 	} else {
 		t.Response <- JsonFn(Success, "succ", string(p))
@@ -58,14 +53,14 @@ func (t *Task) Run(ws *websocket.Conn, body []byte) {
 func AutoLeave(uuid, group string) {
 	mux.Lock()
 	defer mux.Unlock()
-	fmt.Println("删除分组:", group, "UUID: ", uuid)
+	beego.Debug("删除分组:", group, "UUID: ", uuid)
 	if _, ok := WsPool[uuid]; ok {
 		delete(WsPool, uuid)
 	}
 	if _, ok := WsConnMap[uuid]; ok {
 		delete(WsConnMap, uuid)
 	}
-	fmt.Println("清除成功......")
+	beego.Debug("清除成功......")
 
 }
 

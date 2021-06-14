@@ -34,7 +34,7 @@ func (this *WebsocketController) Connect() {
 		defer models.AutoLeave(uuid, group)
 	}
 
-	ws, err = websocket.Upgrade(this.Ctx.ResponseWriter, this.Ctx.Request, nil, 1024*10, 1024*10)
+	ws, err = websocket.Upgrade(this.Ctx.ResponseWriter, this.Ctx.Request, nil, 512, 512)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(this.Ctx.ResponseWriter, "这不是一个ws连接", 400)
 		return
